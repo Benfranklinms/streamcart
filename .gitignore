@@ -1,0 +1,434 @@
+# ------------------------------------------------------------
+# 1. DATASETS
+# ------------------------------------------------------------
+
+# Raw datasets
+data/raw/
+data/**/*.csv
+data/**/*.csv.gz
+data/**/*.zip
+data/**/*.tar
+data/**/*.tar.gz
+data/**/*.parquet
+data/**/*.json
+data/**/*.jsonl
+
+# Processed/generated data
+data/processed/
+data/bronze/
+data/silver/
+data/gold/
+data/quarantine/
+
+# Allow directory structure to exist in Git
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+!data/bronze/.gitkeep
+!data/silver/.gitkeep
+!data/gold/.gitkeep
+!data/quarantine/.gitkeep
+
+
+# ------------------------------------------------------------
+# 2. SPARK
+# ------------------------------------------------------------
+
+# Spark checkpoints
+checkpoints/
+checkpoint/
+**/checkpoints/
+**/checkpoint/
+
+# Spark temporary/state files
+spark-events/
+spark-warehouse/
+**/spark-warehouse/
+
+# Spark output/state directories
+**/_checkpoint/
+**/_spark_metadata/
+
+# Local Spark logs
+logs/spark/
+**/spark-logs/
+
+
+# ------------------------------------------------------------
+# 3. KAFKA
+# ------------------------------------------------------------
+
+# Kafka local data/log directories
+kafka-data/
+kafka-logs/
+data/kafka/
+**/kafka-data/
+**/kafka-logs/
+
+# Kafka temporary files
+**/meta.properties
+
+
+# ------------------------------------------------------------
+# 4. POSTGRESQL
+# ------------------------------------------------------------
+
+# Local database storage
+postgres-data/
+postgresql-data/
+data/postgres/
+**/postgres-data/
+**/postgresql-data/
+
+# PostgreSQL dumps/backups
+*.sql
+*.sql.gz
+*.dump
+*.bak
+
+
+# ------------------------------------------------------------
+# 5. AIRFLOW
+# ------------------------------------------------------------
+
+# Airflow generated/runtime directories
+airflow/logs/
+airflow/logs/**
+airflow/plugins/
+airflow/dags/__pycache__/
+airflow/.pytest_cache/
+
+# Airflow local metadata/database
+airflow.db
+airflow.cfg
+
+# Airflow runtime files
+standalone_admin_password.txt
+
+
+# ------------------------------------------------------------
+# 6. DOCKER
+# ------------------------------------------------------------
+
+# Docker-generated/local volume directories
+docker-volumes/
+volumes/
+.local/
+**/.local/
+
+# Environment-specific Docker files
+docker-compose.override.yml
+
+
+# ------------------------------------------------------------
+# 7. PYTHON
+# ------------------------------------------------------------
+
+# Byte-compiled / optimized Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Python extension modules
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+coverage.xml
+*.cover
+*.py,cover
+
+# Type checking / linting caches
+.mypy_cache/
+.pyre/
+.ruff_cache/
+.pytype/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Python virtual environments
+.venv/
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+
+# ------------------------------------------------------------
+# 8. ENVIRONMENT VARIABLES / SECRETS
+# ------------------------------------------------------------
+
+.env
+.env.*
+!.env.example
+
+*.pem
+*.key
+*.crt
+*.cer
+*.p12
+*.pfx
+
+secrets/
+credentials/
+config/secrets/
+**/secrets/
+**/credentials/
+
+
+# ------------------------------------------------------------
+# 9. IDE / EDITOR FILES
+# ------------------------------------------------------------
+
+# VS Code
+.vscode/
+*.code-workspace
+
+# JetBrains
+.idea/
+*.iml
+
+# Sublime
+*.sublime-project
+*.sublime-workspace
+
+# Vim
+*.swp
+*.swo
+*~
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+Desktop.ini
+
+# Linux
+.directory
+
+
+# ------------------------------------------------------------
+# 10. LOGS
+# ------------------------------------------------------------
+
+*.log
+logs/
+**/logs/
+
+# Keep README placeholders
+!logs/.gitkeep
+
+
+# ------------------------------------------------------------
+# 11. TEMPORARY FILES
+# ------------------------------------------------------------
+
+*.tmp
+*.temp
+*.cache
+.cache/
+tmp/
+temp/
+*.pid
+*.pid.lock
+
+
+# ------------------------------------------------------------
+# 12. GENERATED REPORTS / OUTPUT
+# ------------------------------------------------------------
+
+reports/generated/
+output/
+outputs/
+artifacts/
+generated/
+screenshots/generated/
+
+
+# NOTE:
+# Remove the image/PDF rules above if you later want to
+# version-control documentation screenshots or diagrams.
+
+
+# ------------------------------------------------------------
+# 13. LOCAL DATABASE / ANALYTICS FILES
+# ------------------------------------------------------------
+
+*.db
+*.sqlite
+*.sqlite3
+
+# DuckDB / local analytical databases
+*.duckdb
+*.duckdb.wal
+
+
+# ------------------------------------------------------------
+# 14. NODE / FRONTEND (if added later)
+# ------------------------------------------------------------
+
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+.npm/
+.yarn/
+.pnp/
+.pnp.js
+
+dist/
+.next/
+.nuxt/
+.vite/
+.cache/
+
+
+# ------------------------------------------------------------
+# 15. STREAMLIT
+# ------------------------------------------------------------
+
+.streamlit/secrets.toml
+.streamlit/*.log
+
+
+# ------------------------------------------------------------
+# 16. ML / MODEL ARTIFACTS (if added later)
+# ------------------------------------------------------------
+
+models/
+model/
+*.pkl
+*.pickle
+*.joblib
+*.h5
+*.hdf5
+*.onnx
+*.pt
+*.pth
+
+
+# ------------------------------------------------------------
+# 17. LARGE ARCHIVES / GENERAL DATA FILES
+# ------------------------------------------------------------
+
+*.7z
+*.rar
+*.gz
+*.bz2
+*.xz
+
+
+# ------------------------------------------------------------
+# 18. OS / APPLICATION TEMP FILES
+# ------------------------------------------------------------
+
+*.orig
+*.rej
+*.bak
+*.old
+
+
+# ------------------------------------------------------------
+# 19. LOCAL CONFIGURATION
+# ------------------------------------------------------------
+
+config/local/
+config/*.local.*
+*.local
+*.local.*
+
+# Keep example configuration
+!config/*.example
+!config/**/*.example
+
+
+# ------------------------------------------------------------
+# 20. PROJECT-SPECIFIC RUNTIME STATE
+# ------------------------------------------------------------
+
+runtime/
+state/
+run/
+*.state
+*.checkpoint
+
+
+# ------------------------------------------------------------
+# 21. GENERATED JSON / EVENT FILES
+# ------------------------------------------------------------
+
+events/
+event-output/
+producer/output/
+producer/generated/
+consumer/output/
+
+# Local event samples generated during testing
+*.jsonl
+*.ndjson
+
+
+# ------------------------------------------------------------
+# 22. MAC / DEVELOPMENT MISC
+# ------------------------------------------------------------
+
+.Trashes
+._*
+Icon?
+
+
+# ------------------------------------------------------------
+# 23. KEEP IMPORTANT EMPTY DIRECTORIES
+# ------------------------------------------------------------
+
+!data/
+!data/raw/
+!data/processed/
+!data/bronze/
+!data/silver/
+!data/gold/
+!data/quarantine/
+
+!config/
+!producer/
+!spark/
+!airflow/
+!airflow/dags/
+!streamlit/
+!tests/

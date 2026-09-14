@@ -224,7 +224,7 @@ def main():
         start_gold_query(
             gold_metrics,
             root / "gold" / "event_metrics",
-            checkpoint_root / "gold",
+            checkpoint_root / "gold-v2",
         ),
         start_parquet_query(
             quarantine_events,

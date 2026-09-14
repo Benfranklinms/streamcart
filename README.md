@@ -1,66 +1,159 @@
 # StreamCart real-time analytics
 
-A local, event-driven e-commerce analytics stack. Historical CSV activity is replayed into Kafka, transformed by Spark Structured Streaming through bronze/silver/gold layers, checked by an Airflow health DAG, and viewed in a Streamlit operations dashboard.
+StreamCart is a local e-commerce streaming analytics project. It replays historical CSV events to Kafka, processes them with Spark Structured Streaming, stores curated analytics data as Parquet, and displays the results in a Streamlit dashboard.
 
 ## Architecture
 
 ```text
-CSV replay → Kafka (ecommerce_events) → Spark Structured Streaming
-                                           ├─ bronze: parsed source records
-                                           ├─ silver: validated, de-duplicated events
-                                           ├─ gold: 5-minute event and revenue KPIs → Streamlit
-                                           └─ quarantine: rejected records
-                                                               ↑
-                                                        Airflow health checks
+CSV dataset
+    |
+    v
+Kafka topic: ecommerce_events
+    |
+    v
+Spark Structured Streaming
+    |-- bronze: parsed source events and Kafka metadata
+    |-- silver: validated and de-duplicated events
+    |-- gold: windowed event, user, and revenue metrics
+    `-- quarantine: invalid source events
+    |
+    v
+Streamlit dashboard
+
+Airflow health checks monitor Kafka availability and gold-layer freshness.
 ```
 
-## Project layout
+## Prerequisites
 
-| Path | Purpose |
-| --- | --- |
-| `producer/` | Validates and replays source CSV rows to Kafka. |
-| `spark/` | Kafka-to-Parquet Structured Streaming medallion pipeline. |
-| `airflow/dags/` | Kafka topic and gold-layer freshness monitoring. |
-| `streamlit/` | Live gold-metrics operations dashboard. |
-| `data/` | Raw input and local bronze, silver, gold, and quarantine outputs. |
-| `config/settings.yaml` | Shared defaults and data contract. |
+- Docker Desktop with Docker Compose
+- Python 3.11 or later
+- The source dataset at `data/raw/2019-Oct.csv`
 
-## Run locally with Docker
-
-Prerequisites: Docker Compose and a local Python environment with the dependencies in `requirements.txt` (the existing `venv` is fine for the producer).
-
-Start Kafka and create the topic:
+If you do not already have a virtual environment, create one and install the Python dependencies:
 
 ```bash
-docker compose up -d kafka kafka-init
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
 ```
 
-Start the streaming job in a separate terminal. The initial connector package download can take a moment.
+## Quick start
+
+Run the commands from the repository root.
+
+### 1. Update the project and start Kafka
+
+```bash
+git pull origin main
+docker compose up -d --force-recreate kafka
+docker compose run --rm kafka-init
+```
+
+The last command must finish successfully. It creates the `ecommerce_events` topic if it does not already exist.
+
+### 2. Start Spark
+
+Open a new terminal and start the streaming job:
 
 ```bash
 docker compose --profile pipeline up spark
 ```
 
-Replay a sample of the bundled dataset in another terminal:
+Keep this terminal open. On the first run, Spark downloads the Kafka connector, which can take a few minutes. Continue only after the Spark job is running without an error.
+
+### 3. Replay events
+
+Open another terminal:
 
 ```bash
+source venv/bin/activate
+
 venv/bin/python producer/event_replayer.py \
   --file data/raw/2019-Oct.csv \
   --rate 100 \
   --max-events 10000
 ```
 
-Launch the dashboard at <http://localhost:8501>:
+Remove `--max-events 10000` to replay the entire dataset. Spark must already be running before replay begins.
+
+### 4. Start the dashboard
+
+Open a third terminal:
 
 ```bash
 docker compose --profile dashboard up --build dashboard
 ```
 
-The gold job writes finalized event-time windows. With the default 10-minute watermark, a window appears after Spark has observed later events; this prevents late data from silently changing a finalized KPI.
+Open <http://localhost:8501> in a browser. Keep the dashboard process running while you use it.
 
-## Airflow health DAG
+After the replay starts, Spark normally writes gold metrics within 5 to 30 seconds. Refresh the browser if the dashboard initially reports that no metrics are available.
 
-Point a local Airflow installation at `airflow/dags`, set `PROJECT_ROOT` to this repository, and start Airflow. The `realtime_pipeline_health` DAG runs every five minutes and fails when the Kafka topic is unavailable or the gold layer has not been updated for 20 minutes.
+## Verify the pipeline
+
+Check that Spark wrote gold-layer Parquet files:
+
+```bash
+find data/gold/event_metrics -name 'part-*.parquet' | head
+```
+
+Check the most recent Spark logs:
+
+```bash
+docker compose logs --tail=100 spark
+```
+
+Run the producer data-contract tests:
+
+```bash
+venv/bin/python -m unittest discover -s tests -v
+```
+
+## Common issues
+
+| Problem | Resolution |
+| --- | --- |
+| `kafka-init` exits with code 1 | Run `git pull origin main`, then rerun `docker compose up -d --force-recreate kafka` and `docker compose run --rm kafka-init`. Inspect `docker compose logs kafka-init` if it still fails. |
+| Producer reports `KafkaTimeoutError` | The Kafka topic is unavailable. Complete the Kafka initialization step before replaying events. |
+| Spark reports an Ivy cache error | Pull the latest project changes and restart Spark with `docker compose --profile pipeline up --force-recreate spark`. |
+| Dashboard is empty | Confirm Spark was running before the replay. Check for files in `data/gold/event_metrics`, then refresh or restart the dashboard. |
+| Dashboard shows a temporary-file error | Pull the latest changes and rebuild the dashboard with `docker compose --profile dashboard up --build --force-recreate dashboard`. |
+
+## Stop the stack
+
+Stop containers without deleting Kafka data:
+
+```bash
+docker compose --profile pipeline --profile dashboard down
+```
+
+Do not add `-v` unless you intentionally want to delete the Kafka volume and start with a new broker state.
+
+## Data layers
+
+| Layer | Location | Contents |
+| --- | --- | --- |
+| Raw | `data/raw/` | Input CSV dataset. |
+| Bronze | `data/bronze/events/` | Parsed Kafka events with source metadata. |
+| Silver | `data/silver/events/` | Validated, normalized, and de-duplicated events. |
+| Gold | `data/gold/event_metrics/` | Aggregated event, active-user, and revenue metrics. |
+| Quarantine | `data/quarantine/events/` | Events rejected by validation rules. |
+
+Generated data, Spark checkpoints, and Kafka volumes are local runtime artifacts. They are ignored by Git and should not be committed to GitHub.
+
+## Project layout
+
+| Path | Purpose |
+| --- | --- |
+| `producer/` | Kafka CSV replay producer. |
+| `spark/` | Spark Structured Streaming pipeline. |
+| `streamlit/` | Dashboard source and container definition. |
+| `airflow/dags/` | Optional pipeline health DAG. |
+| `config/settings.yaml` | Default topic, storage, and pipeline settings. |
+| `tests/` | Producer data-contract tests. |
+
+## Airflow health checks
+
+The optional `realtime_pipeline_health` DAG checks that the Kafka topic exists and that gold-layer output is recent. Install and configure Airflow separately, then point it at the project DAG folder:
 
 ```bash
 export AIRFLOW__CORE__DAGS_FOLDER="$PWD/airflow/dags"
@@ -68,15 +161,3 @@ export PROJECT_ROOT="$PWD"
 export KAFKA_BOOTSTRAP_SERVER="localhost:9092"
 airflow standalone
 ```
-
-## Tests
-
-Run the producer data-contract tests without a Kafka broker:
-
-```bash
-venv/bin/python -m unittest discover -s tests -v
-```
-
-## Configuration
-
-The defaults are collected in `config/settings.yaml`. Override the producer or Spark arguments when targeting a remote broker or a different source topic. Kafka automatic topic creation is deliberately disabled; `kafka-init` creates the required three-partition topic explicitly.

@@ -1,0 +1,18 @@
+project:
+  name: real-time-analytics
+
+kafka:
+  bootstrap_servers: localhost:9092
+  topic: ecommerce_events
+  partitions: 3
+
+spark:
+  bootstrap_servers: kafka:9092
+  watermark: 10 minutes
+  aggregation_window: 5 minutes
+
+storage:
+  bronze: data/bronze/events
+  silver: data/silver/events
+  gold: data/gold/event_metrics
+  quarantine: data/quarantine/events

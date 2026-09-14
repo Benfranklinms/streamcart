@@ -1,0 +1,5 @@
+kafka-python>=2.0,<3.0
+pyspark>=3.5,<3.6
+streamlit>=1.40,<2.0
+pandas>=2.2,<3.0
+pyarrow>=18,<20

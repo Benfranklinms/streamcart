@@ -103,6 +103,7 @@ airflow.cfg
 
 # Airflow runtime files
 standalone_admin_password.txt
+airflow/runtime/
 
 
 # ------------------------------------------------------------

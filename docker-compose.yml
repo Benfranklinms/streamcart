@@ -37,10 +37,18 @@ services:
     depends_on:
       kafka:
         condition: service_healthy
-    entrypoint: ["/bin/bash", "-c"]
-    command: >-
-      /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:29092
-      --create --if-not-exists --topic ecommerce_events --partitions 3 --replication-factor 1
+    entrypoint: ["/opt/kafka/bin/kafka-topics.sh"]
+    command:
+      - --bootstrap-server
+      - kafka:29092
+      - --create
+      - --if-not-exists
+      - --topic
+      - ecommerce_events
+      - --partitions
+      - "3"
+      - --replication-factor
+      - "1"
 
   spark:
     image: apache/spark:3.5.5

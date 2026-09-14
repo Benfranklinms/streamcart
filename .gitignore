@@ -10,6 +10,11 @@ data/**/*.zip
 data/**/*.tar
 data/**/*.tar.gz
 data/**/*.parquet
+data/**/*.crc
+data/**/_temporary/
+data/**/_SUCCESS
+data/**/_committed_*
+data/**/_started_*
 data/**/*.json
 data/**/*.jsonl
 

@@ -33,7 +33,11 @@ st.markdown(
 def load_metrics(path: str) -> pd.DataFrame:
     # Spark writes through a temporary directory during overwrite. Only read
     # finalized files at the gold root, never files under `_temporary`.
-    parquet_files = sorted(Path(path).glob("part-*.parquet"))
+    parquet_files = sorted(
+        parquet_file
+        for parquet_file in Path(path).rglob("part-*.parquet")
+        if "_temporary" not in parquet_file.parts
+    )
     frames = []
     for parquet_file in parquet_files:
         try:

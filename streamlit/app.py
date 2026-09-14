@@ -31,11 +31,22 @@ st.markdown(
 
 @st.cache_data(ttl=15)
 def load_metrics(path: str) -> pd.DataFrame:
-    parquet_files = list(Path(path).rglob("*.parquet"))
-    if not parquet_files:
+    # Spark writes through a temporary directory during overwrite. Only read
+    # finalized files at the gold root, never files under `_temporary`.
+    parquet_files = sorted(Path(path).glob("part-*.parquet"))
+    frames = []
+    for parquet_file in parquet_files:
+        try:
+            if parquet_file.exists():
+                frames.append(pd.read_parquet(parquet_file))
+        except (FileNotFoundError, OSError):
+            # Spark may replace this file between the directory scan and read.
+            continue
+
+    if not frames:
         return pd.DataFrame()
 
-    metrics = pd.concat((pd.read_parquet(file) for file in parquet_files), ignore_index=True)
+    metrics = pd.concat(frames, ignore_index=True)
     metrics["window_start"] = pd.to_datetime(metrics["window_start"], utc=True)
     metrics["window_end"] = pd.to_datetime(metrics["window_end"], utc=True)
     return metrics

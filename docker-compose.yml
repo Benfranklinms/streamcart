@@ -25,5 +25,54 @@ services:
     volumes:
       - kafka-data:/var/lib/kafka/data
 
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list >/dev/null 2>&1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  kafka-init:
+    image: apache/kafka:4.1.0
+    depends_on:
+      kafka:
+        condition: service_healthy
+    entrypoint: ["/bin/bash", "-c"]
+    command: >-
+      /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092
+      --create --if-not-exists --topic ecommerce_events --partitions 3 --replication-factor 1
+
+  spark:
+    image: bitnami/spark:3.5.5
+    profiles: ["pipeline"]
+    depends_on:
+      kafka-init:
+        condition: service_completed_successfully
+    working_dir: /opt/project
+    volumes:
+      - .:/opt/project
+    command:
+      - /opt/bitnami/spark/bin/spark-submit
+      - --master
+      - local[*]
+      - --packages
+      - org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.5
+      - /opt/project/spark/streaming_pipeline.py
+      - --bootstrap-server
+      - kafka:9092
+      - --output-root
+      - /opt/project/data
+
+  dashboard:
+    build:
+      context: .
+      dockerfile: streamlit/Dockerfile
+    profiles: ["dashboard"]
+    ports:
+      - "8501:8501"
+    environment:
+      GOLD_PATH: /app/data/gold/event_metrics
+    volumes:
+      - .:/app
+
 volumes:
   kafka-data:

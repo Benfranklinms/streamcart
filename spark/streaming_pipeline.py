@@ -5,11 +5,13 @@ from pathlib import Path
 
 from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql.functions import (
+    approx_count_distinct,
     coalesce,
     col,
     count,
     current_timestamp,
     from_json,
+    lit,
     lower,
     sum as spark_sum,
     to_timestamp,
@@ -91,21 +93,41 @@ def parse_events(kafka_events: DataFrame) -> DataFrame:
     )
 
 
-def build_silver_events(bronze_events: DataFrame, watermark: str) -> DataFrame:
-    """Keep valid, de-duplicated analytical events in the silver layer."""
-    valid = bronze_events.filter(
+def valid_event_condition():
+    return coalesce(
         col("event_time").isNotNull()
         & col("event_type").isin(*VALID_EVENT_TYPES)
         & col("product_id").isNotNull()
         & col("user_id").isNotNull()
         & col("price").isNotNull()
-        & (col("price") >= 0)
+        & (col("price") >= 0),
+        lit(False),
     )
+
+
+def build_silver_events(bronze_events: DataFrame, watermark: str) -> DataFrame:
+    """Keep valid, de-duplicated analytical events in the silver layer."""
+    valid = bronze_events.filter(valid_event_condition())
 
     return (
         valid.withWatermark("event_time", watermark)
         .dropDuplicates(["user_session", "event_time", "event_type", "product_id"])
         .withColumn("brand", coalesce(col("brand"), col("category_code"), col("event_type")))
+    )
+
+
+def build_quarantine_events(bronze_events: DataFrame) -> DataFrame:
+    """Route malformed source records aside without stopping the main stream."""
+    return bronze_events.filter(~valid_event_condition()).withColumn(
+        "quarantine_reason",
+        when(col("event_time").isNull(), "invalid event_time")
+        .when(
+            col("event_type").isNull() | (~col("event_type").isin(*VALID_EVENT_TYPES)),
+            "invalid event_type",
+        )
+        .when(col("product_id").isNull(), "invalid product_id")
+        .when(col("user_id").isNull(), "invalid user_id")
+        .otherwise("invalid price"),
     )
 
 
@@ -119,7 +141,7 @@ def build_gold_metrics(silver_events: DataFrame, aggregation_window: str) -> Dat
         )
         .agg(
             count("*").alias("event_count"),
-            count("user_id").alias("active_users"),
+            approx_count_distinct("user_id").alias("active_users"),
             spark_sum(
                 when(col("event_type") == "purchase", col("price")).otherwise(0.0)
             ).alias("purchase_revenue"),
@@ -162,6 +184,7 @@ def main():
 
     bronze_events = parse_events(read_kafka_events(spark, args.bootstrap_server, args.topic))
     silver_events = build_silver_events(bronze_events, args.watermark)
+    quarantine_events = build_quarantine_events(bronze_events)
     gold_metrics = build_gold_metrics(silver_events, args.window)
 
     queries = [
@@ -182,6 +205,12 @@ def main():
             root / "gold" / "event_metrics",
             checkpoint_root / "gold",
             "gold-event-metrics",
+        ),
+        start_parquet_query(
+            quarantine_events,
+            root / "quarantine" / "events",
+            checkpoint_root / "quarantine",
+            "quarantine-events",
         ),
     ]
 

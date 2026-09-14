@@ -174,6 +174,27 @@ def start_parquet_query(
     )
 
 
+def write_gold_batch(batch: DataFrame, _batch_id: int, output_path: Path):
+    """Materialize the complete aggregate so finite replays are visible immediately."""
+    batch.write.mode("overwrite").parquet(str(output_path))
+
+
+def start_gold_query(
+    dataframe: DataFrame,
+    output_path: Path,
+    checkpoint_path: Path,
+):
+    return (
+        dataframe.writeStream.queryName("gold-event-metrics")
+        .outputMode("complete")
+        .option("checkpointLocation", str(checkpoint_path))
+        .foreachBatch(
+            lambda batch, batch_id: write_gold_batch(batch, batch_id, output_path)
+        )
+        .start()
+    )
+
+
 def main():
     args = parse_arguments()
     root = args.output_root
@@ -200,11 +221,10 @@ def main():
             checkpoint_root / "silver",
             "silver-events",
         ),
-        start_parquet_query(
+        start_gold_query(
             gold_metrics,
             root / "gold" / "event_metrics",
             checkpoint_root / "gold",
-            "gold-event-metrics",
         ),
         start_parquet_query(
             quarantine_events,

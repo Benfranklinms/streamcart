@@ -42,7 +42,7 @@ services:
       --create --if-not-exists --topic ecommerce_events --partitions 3 --replication-factor 1
 
   spark:
-    image: bitnami/spark:3.5.5
+    image: apache/spark:3.5.5
     profiles: ["pipeline"]
     depends_on:
       kafka-init:
@@ -51,7 +51,7 @@ services:
     volumes:
       - .:/opt/project
     command:
-      - /opt/bitnami/spark/bin/spark-submit
+      - /opt/spark/bin/spark-submit
       - --master
       - local[*]
       - --packages
